@@ -1,0 +1,91 @@
+---
+title: "Penguins ANOVA"
+author: "Lauren Jack"
+date: "11/6/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+```
+
+```{r}
+library(car)
+library(onewaytests)
+```
+
+Our Questions:
+Is there a significant distance in mean flipper length for female penguins by species (chinstrap, Gentoo, and Adelie)?
+
+
+2.) Do some exploring, knowing that the data is already in tidy format
+
+Few Functions: width + table for easy counting over multiple factors
+
+Update the species name using case_when
+
+```{r}
+penguins <- read_csv('penguins.csv')
+
+counts <- with(penguins, table(species, sex))
+
+penguins2 <- penguins %>% 
+  mutate(common_name =
+           case_when(
+             species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap",
+             species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo",
+             species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie"
+               
+           )
+         ) %>% 
+  select(-species) %>% 
+  filter(sex == "FEMALE")
+```
+
+
+```{r}
+hists <- ggplot(penguins2, aes(x = flipper_length)) +
+  geom_histogram(aes(fill = common_name)) +
+  facet_wrap(~common_name)
+
+hists
+```
+
+
+```{r}
+QQ_Peng <- ggplot(penguins2, aes(sample = flipper_length)) +
+  geom_qq() +
+  facet_wrap(~ common_name)
+
+QQ_Peng
+```
+
+#Levenne's test for equal variences (> 2 groups ... if you have two groups, use the F-Test for equal variences)
+
+#We'll use the function leveneTest from the 'car' packages
+
+# HNull: Variances are Equal
+# H Alt: Variances are unequal
+
+```{r}
+penguins_levenne <- leveneTest(flipper_length ~ common_name, data = penguins2)
+
+penguins_levenne
+
+#We retain the null hypothesis of equal variences (p = 0.06)
+
+penguins_var <-penguins2 %>% 
+  group_by(common_name) %>% 
+  summarize(
+    variance = var(flipper_length)
+  )
+
+penguins_var
+
+```
+
